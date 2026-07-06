@@ -7,6 +7,7 @@ import {
   CategoryEntity,
   PriceHistoryEntity,
   ProductPropertyEntity,
+  ProductPropertyOptionEntity,
   ProductEntity,
   PublicDictionaryItem,
   PublicOfferCard,
@@ -147,16 +148,43 @@ export class ProductsService {
   private mapVariantProperty(property: VariantProperty): PublicVariantProperty {
     return {
       uuid: property.uuid,
+      optionUuid: property.optionUuid,
       value: property.value,
       property: this.mapDictionaryItem(property.property),
+      option: this.mapPropertyOption(property.option),
     };
   }
 
   private mapProductProperty(property: ProductProperty): PublicProductProperty {
     return {
       uuid: property.uuid,
+      optionUuid: property.optionUuid,
       value: property.value,
       property: this.mapDictionaryItem(property.property),
+      option: this.mapPropertyOption(property.option),
+    };
+  }
+
+  private mapPropertyOption(option?: ProductPropertyOptionEntity | null) {
+    if (!option) {
+      return null;
+    }
+
+    return {
+      uuid: option.uuid,
+      name: option.name,
+      metadata: (option.metadata ?? [])
+        .map((metadata) => ({
+          uuid: metadata.uuid,
+          valueType: metadata.valueType,
+          sortOrder: metadata.sortOrder,
+          textValue: metadata.textValue,
+          colorValue: metadata.colorValue,
+          fileUuid: metadata.fileUuid,
+          imageUrl: metadata.fileUuid ? `/v1/files/${metadata.fileUuid}` : null,
+          iconCode: metadata.iconCode,
+        }))
+        .sort((left, right) => left.sortOrder - right.sortOrder),
     };
   }
 

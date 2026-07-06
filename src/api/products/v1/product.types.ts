@@ -111,22 +111,44 @@ export interface VariantEntity {
 
 export interface ProductPropertyEntity {
   uuid: string;
+  optionUuid?: string | null;
   value: string;
   property?: {
     uuid: string;
     code: string;
     name: string;
   };
+  option?: ProductPropertyOptionEntity | null;
 }
 
 export interface VariantPropertyEntity {
   uuid: string;
+  optionUuid?: string | null;
   value: string;
   property?: {
     uuid: string;
     code: string;
     name: string;
   };
+  option?: ProductPropertyOptionEntity | null;
+}
+
+export interface ProductPropertyOptionEntity {
+  uuid: string;
+  code: string;
+  name: string;
+  metadata?: ProductPropertyOptionMetadataEntity[];
+}
+
+export interface ProductPropertyOptionMetadataEntity {
+  uuid: string;
+  valueType: 'TEXT' | 'COLOR' | 'IMAGE' | 'ICON';
+  sortOrder: number;
+  textValue?: string | null;
+  colorValue?: string | null;
+  fileUuid?: string | null;
+  imageUrl?: string | null;
+  iconCode?: string | null;
 }
 
 export interface VariantImageEntity {
@@ -200,14 +222,34 @@ export interface PublicVariant {
 
 export interface PublicVariantProperty {
   uuid: string;
+  optionUuid?: string | null;
   value: string;
   property?: PublicDictionaryItem | null;
+  option?: PublicPropertyOption | null;
 }
 
 export interface PublicProductProperty {
   uuid: string;
+  optionUuid?: string | null;
   value: string;
   property?: PublicDictionaryItem | null;
+  option?: PublicPropertyOption | null;
+}
+
+export interface PublicPropertyOption {
+  uuid: string;
+  name: string;
+  metadata: PublicPropertyOptionMetadata[];
+}
+
+export interface PublicPropertyOptionMetadata {
+  uuid: string;
+  valueType: 'TEXT' | 'COLOR' | 'IMAGE' | 'ICON';
+  sortOrder: number;
+  textValue?: string | null;
+  colorValue?: string | null;
+  fileUuid?: string | null;
+  iconCode?: string | null;
 }
 
 export interface PublicVariantImage {
