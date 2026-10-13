@@ -26,3 +26,15 @@
 ## Проверка
 
 Основная проверка: `yarn build`.
+
+## Учетные записи Store
+
+Store API возвращает offers[].records[]: uuid, article, clarifications[]
+(position/value) и inventory (recordUuid, quantity, reserved, available, version).
+Артикул и остаток принадлежат учетной записи. У товара/связи варианта их нет.
+Каталог — product_srv_v2; нельзя обращаться к прежнему product API или
+возвращать старый offer_inventory контракт.
+
+AMQP_PRODUCT_SRV_COMMAND_QUEUE должен адресовать текущий product_srv_v2.
+Storefront /v1/products и /v1/offers/:uuid передают records[] для выбора
+конкретной учетной записи клиентом; cart/order lifecycle сюда не добавлен.

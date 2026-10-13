@@ -1,33 +1,14 @@
 import { Injectable } from '@nestjs/common';
-
 import { ProductGateway } from './gateway/product.gateway';
 import { StoreProductGateway } from './gateway/store-product.gateway';
 import {
-  BrandEntity,
-  CategoryEntity,
-  PriceHistoryEntity,
-  ProductPropertyEntity,
-  ProductPropertyOptionEntity,
   ProductEntity,
-  PublicDictionaryItem,
+  StoreOfferEntity,
+  BrandEntity,
   PublicOfferCard,
   PublicOfferDetail,
-  PublicInventory,
-  PublicPrice,
-  PublicProductProperty,
   PublicProductResult,
-  PublicVariant,
-  PublicVariantImage,
-  PublicVariantProperty,
-  StoreOfferEntity,
-  VariantEntity,
 } from './product.types';
-
-const ACTIVE_STATUS = 'active';
-
-type VariantProperty = NonNullable<VariantEntity['properties']>[number];
-type ProductProperty = NonNullable<ProductEntity['properties']>[number];
-type VariantImage = NonNullable<VariantEntity['images']>[number];
 
 @Injectable()
 export class ProductsService {
@@ -35,210 +16,73 @@ export class ProductsService {
     private readonly storeProductGateway: StoreProductGateway,
     private readonly productGateway: ProductGateway,
   ) {}
-
   async findAll(query: Record<string, unknown>): Promise<PublicProductResult> {
-    void query;
-
-    const storeOffers = await this.storeProductGateway.findOffersAll();
-    const data = await this.composeOfferCards(storeOffers.data ?? []);
-
-    return {
-      data,
-      meta: {
-        totalRows: data.length,
-      },
-    };
+    const offers = await this.storeProductGateway.findOffersAll();
+    const ids = [...new Set(offers.data.map((offer) => offer.productUuid))];
+    const products = await Promise.all(ids.map((uuid) => this.productGateway.getByUuid(uuid)));
+    const byUuid = new Map(products.map((product) => [product.uuid, product]));
+    const brands = await this.loadBrands(products);
+    const data = offers.data
+      .map((offer) => {
+        const product = byUuid.get(offer.productUuid);
+        return product ? this.compose(offer, product, brands.get(product.brandCode) ?? null) : null;
+      })
+      .filter((offer): offer is PublicOfferCard => offer !== null);
+    return { data, meta: { totalRows: data.length } };
   }
-
   async findOfferByUuid(uuid: string): Promise<PublicOfferDetail> {
     const detail = await this.storeProductGateway.findOfferByUuid(uuid);
-    const product = await this.productGateway.findByUuid(detail.offer.productUuid);
-    const offer = this.composeOfferCard(detail.offer, product);
+    const product = await this.productGateway.getByUuid(detail.offer.productUuid);
+    const brands = await this.loadBrands([product]);
+    const brand = brands.get(product.brandCode) ?? null;
+    const offer = this.compose(detail.offer, product, brand);
+    if (!offer) throw new Error('Store offer references an unavailable catalog variant');
     const siblingOffers = detail.siblingOffers
-      .map((siblingOffer) => this.composeOfferCard(siblingOffer, product))
-      .filter((siblingOffer): siblingOffer is PublicOfferCard => Boolean(siblingOffer));
-
-    if (!offer) {
-      throw new Error('Store offer product variant is missing');
-    }
-
-    return {
-      offer,
-      siblingOffers,
-    };
+      .map((item) => this.compose(item, product, brand))
+      .filter((item): item is PublicOfferCard => item !== null);
+    return { offer, siblingOffers };
   }
-
-  private async composeOfferCards(storeOffers: StoreOfferEntity[]) {
-    const productUuid = Array.from(new Set(storeOffers.map((offer) => offer.productUuid)));
-
-    if (productUuid.length === 0) {
-      return [];
-    }
-
-    const products = await this.productGateway.findAll({ uuid: productUuid });
-    const productsByUuid = new Map((products.data ?? []).map((product) => [product.uuid, product]));
-    const data: PublicOfferCard[] = [];
-
-    for (const offer of storeOffers) {
-      const product = productsByUuid.get(offer.productUuid);
-
-      if (!product) {
-        continue;
-      }
-
-      const offerCard = this.composeOfferCard(offer, product);
-
-      if (offerCard) {
-        data.push(offerCard);
-      }
-    }
-
-    return data;
+  private async loadBrands(products: ProductEntity[]): Promise<Map<string, BrandEntity>> {
+    const codes = [...new Set(products.map((product) => product.brandCode).filter(Boolean))];
+    const brands = await Promise.all(codes.map((code) => this.productGateway.getBrand(code)));
+    return new Map(brands.map((brand) => [brand.code, brand]));
   }
-
-  private composeOfferCard(offer: StoreOfferEntity, product: ProductEntity): PublicOfferCard | null {
-    if (!this.isActive(product.status)) {
-      return null;
-    }
-
-    const variantsByUuid = new Map((product.variants ?? []).map((variant) => [variant.uuid, variant]));
-    const variant = variantsByUuid.get(offer.variantUuid);
-
-    if (!variant || !this.isActive(variant.status)) {
-      return null;
-    }
-
+  private compose(offer: StoreOfferEntity, product: ProductEntity, brand: BrandEntity | null): PublicOfferCard | null {
+    const variant = product.variants.find((item) => item.uuid === offer.variantUuid);
+    if (product.status !== 'active' || !variant || variant.status !== 'active') return null;
     return {
       uuid: offer.uuid,
       offerUuid: offer.uuid,
       storeProductUuid: offer.storeProductUuid,
       productUuid: product.uuid,
       variantUuid: variant.uuid,
-      article: offer.article ?? offer.storeProductArticle,
       name: variant.name || product.name,
       description: variant.description || product.description,
       product: {
         uuid: product.uuid,
         name: product.name,
         description: product.description,
-        properties: (product.properties ?? []).map((property) => this.mapProductProperty(property)),
+        properties: product.properties,
       },
-      brand: this.mapDictionaryItem(product.brand),
-      category: this.mapDictionaryItem(product.category),
-      variant: this.mapVariant(variant),
-      currentPrice: this.mapPrice(offer.currentPrice),
-      inventory: this.mapInventory(offer.inventory),
+      brand,
+      variant: {
+        uuid: variant.uuid,
+        name: variant.name,
+        description: variant.description,
+        properties: variant.properties,
+        images: variant.images
+          .map((image) => ({
+            imageUuid: image.imageUuid,
+            fileName: image.fileName,
+            order: image.sortOrder,
+            imageUrl: `/v1/files/${image.imageUuid}`,
+          }))
+          .sort((left, right) => left.order - right.order),
+      },
+      records: offer.records,
+      currentPrice: offer.currentPrice ?? null,
       createdAt: offer.createdAt,
       updatedAt: offer.updatedAt,
     };
-  }
-
-  private mapVariant(variant: VariantEntity): PublicVariant {
-    return {
-      uuid: variant.uuid,
-      name: variant.name,
-      description: variant.description,
-      properties: (variant.properties ?? []).map((property) => this.mapVariantProperty(property)),
-      images: (variant.images ?? [])
-        .map((image) => this.mapVariantImage(image))
-        .sort((left, right) => left.order - right.order),
-    };
-  }
-
-  private mapVariantProperty(property: VariantProperty): PublicVariantProperty {
-    return {
-      uuid: property.uuid,
-      optionUuid: property.optionUuid,
-      value: property.value,
-      property: this.mapDictionaryItem(property.property),
-      option: this.mapPropertyOption(property.option),
-    };
-  }
-
-  private mapProductProperty(property: ProductProperty): PublicProductProperty {
-    return {
-      uuid: property.uuid,
-      optionUuid: property.optionUuid,
-      value: property.value,
-      property: this.mapDictionaryItem(property.property),
-      option: this.mapPropertyOption(property.option),
-    };
-  }
-
-  private mapPropertyOption(option?: ProductPropertyOptionEntity | null) {
-    if (!option) {
-      return null;
-    }
-
-    return {
-      uuid: option.uuid,
-      name: option.name,
-      metadata: (option.metadata ?? [])
-        .map((metadata) => ({
-          uuid: metadata.uuid,
-          valueType: metadata.valueType,
-          sortOrder: metadata.sortOrder,
-          textValue: metadata.textValue,
-          colorValue: metadata.colorValue,
-          fileUuid: metadata.fileUuid,
-          imageUrl: metadata.fileUuid ? `/v1/files/${metadata.fileUuid}` : null,
-          iconCode: metadata.iconCode,
-        }))
-        .sort((left, right) => left.sortOrder - right.sortOrder),
-    };
-  }
-
-  private mapVariantImage(image: VariantImage): PublicVariantImage {
-    return {
-      uuid: image.uuid,
-      imageUuid: image.imageUuid,
-      imageUrl: `/v1/files/${image.imageUuid}`,
-      fileName: image.image?.fileName,
-      order: image.order,
-      alt: image.alt,
-    };
-  }
-
-  private mapDictionaryItem(
-    item?: BrandEntity | CategoryEntity | ProductPropertyEntity['property'] | VariantProperty['property'] | null,
-  ): PublicDictionaryItem | null {
-    if (!item) {
-      return null;
-    }
-
-    return {
-      uuid: item.uuid,
-      code: 'code' in item ? item.code : undefined,
-      name: item.name,
-    };
-  }
-
-  private mapPrice(price?: PriceHistoryEntity | null): PublicPrice | null {
-    if (!price) {
-      return null;
-    }
-
-    return {
-      uuid: price.uuid,
-      value: price.value,
-      currencyCode: price.currencyCode,
-      currency: price.currency,
-    };
-  }
-
-  private mapInventory(inventory?: { quantity: number; reserved: number } | null): PublicInventory | null {
-    if (!inventory) {
-      return null;
-    }
-
-    return {
-      quantity: inventory.quantity,
-      reserved: inventory.reserved,
-      available: inventory.quantity - inventory.reserved,
-    };
-  }
-
-  private isActive(status: string) {
-    return status === ACTIVE_STATUS;
   }
 }
