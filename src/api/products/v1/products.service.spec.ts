@@ -1,10 +1,12 @@
 import { describe, it, expect, jest } from '@jest/globals';
+import { ConfigService } from '@nestjs/config';
 import { ProductsService } from './products.service';
 import { ProductGateway } from './gateway/product.gateway';
 import { StoreProductGateway } from './gateway/store-product.gateway';
 import { ProductEntity, StoreOfferEntity } from './product.types';
 
 describe(ProductsService.name, () => {
+  const shopUuid = 'be250838-85f9-41fa-b9f3-99aba3590640';
   const product: ProductEntity = {
     uuid: 'product',
     typeUuid: 'type',
@@ -41,7 +43,7 @@ describe(ProductsService.name, () => {
   const offer: StoreOfferEntity = {
     uuid: 'offer',
     storeProductUuid: 'store-product',
-    shopUuid: 'shop',
+    shopUuid,
     productUuid: 'product',
     variantUuid: 'variant',
     status: 'active',
@@ -68,7 +70,11 @@ describe(ProductsService.name, () => {
     return {
       store,
       catalog,
-      service: new ProductsService(store as unknown as StoreProductGateway, catalog as unknown as ProductGateway),
+      service: new ProductsService(
+        store as unknown as StoreProductGateway,
+        catalog as unknown as ProductGateway,
+        new ConfigService({ STOREFRONT_SHOP_UUID: shopUuid }),
+      ),
     };
   };
   it('returns selectable accounting records with their own article and stock', async () => {
@@ -87,5 +93,38 @@ describe(ProductsService.name, () => {
     expect(result.siblingOffers[0].records).toEqual([record]);
     catalog.getByUuid.mockResolvedValue({ ...product, variants: [{ ...product.variants[0], status: 'archived' }] });
     expect((await service.findAll({})).data).toEqual([]);
+  });
+  it('adds storefront policy to the same flat query for lists and offer details', async () => {
+    const { service, store } = setup();
+    const policy = {
+      search: 'BLUE-S',
+      shopUuid,
+      productStatus: 'active',
+      productShowing: true,
+      variantStatus: 'active',
+      variantShowing: true,
+      availableMin: 1,
+    } as const;
+    await service.findAll({ search: 'BLUE-S' });
+    expect(store.findOffersAll).toHaveBeenCalledWith(policy);
+    await service.findOfferByUuid('offer', { search: 'BLUE-S' });
+    expect(store.findOfferByUuid).toHaveBeenCalledWith('offer', policy);
+  });
+  it('does not allow incoming query fields to override the configured shop or storefront policy', async () => {
+    const { service, store } = setup();
+    const query = { shopUuid: 'another-shop', productShowing: false, availableMin: 0, search: 'BLUE' };
+    await service.findAll(query);
+    await service.findOfferByUuid('offer', query);
+    const expected = {
+      search: 'BLUE',
+      shopUuid,
+      productStatus: 'active',
+      productShowing: true,
+      variantStatus: 'active',
+      variantShowing: true,
+      availableMin: 1,
+    } as const;
+    expect(store.findOffersAll).toHaveBeenCalledWith(expected);
+    expect(store.findOfferByUuid).toHaveBeenCalledWith('offer', expected);
   });
 });

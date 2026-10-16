@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ProductGateway } from './gateway/product.gateway';
 import { StoreProductGateway } from './gateway/store-product.gateway';
+import { StoreQueryInput } from './gateway/input/store-query.input';
+import { ProductsQueryInput } from './service/input/products-query.input';
 import {
   ProductEntity,
   StoreOfferEntity,
@@ -15,9 +18,10 @@ export class ProductsService {
   constructor(
     private readonly storeProductGateway: StoreProductGateway,
     private readonly productGateway: ProductGateway,
+    private readonly config: ConfigService,
   ) {}
-  async findAll(query: Record<string, unknown>): Promise<PublicProductResult> {
-    const offers = await this.storeProductGateway.findOffersAll();
+  async findAll(query: ProductsQueryInput): Promise<PublicProductResult> {
+    const offers = await this.storeProductGateway.findOffersAll(this.createStoreQuery(query));
     const ids = [...new Set(offers.data.map((offer) => offer.productUuid))];
     const products = await Promise.all(ids.map((uuid) => this.productGateway.getByUuid(uuid)));
     const byUuid = new Map(products.map((product) => [product.uuid, product]));
@@ -30,8 +34,8 @@ export class ProductsService {
       .filter((offer): offer is PublicOfferCard => offer !== null);
     return { data, meta: { totalRows: data.length } };
   }
-  async findOfferByUuid(uuid: string): Promise<PublicOfferDetail> {
-    const detail = await this.storeProductGateway.findOfferByUuid(uuid);
+  async findOfferByUuid(uuid: string, query: ProductsQueryInput = {}): Promise<PublicOfferDetail> {
+    const detail = await this.storeProductGateway.findOfferByUuid(uuid, this.createStoreQuery(query));
     const product = await this.productGateway.getByUuid(detail.offer.productUuid);
     const brands = await this.loadBrands([product]);
     const brand = brands.get(product.brandCode) ?? null;
@@ -41,6 +45,17 @@ export class ProductsService {
       .map((item) => this.compose(item, product, brand))
       .filter((item): item is PublicOfferCard => item !== null);
     return { offer, siblingOffers };
+  }
+  private createStoreQuery(query: ProductsQueryInput): StoreQueryInput {
+    return {
+      ...query,
+      shopUuid: this.config.getOrThrow<string>('STOREFRONT_SHOP_UUID'),
+      productStatus: 'active',
+      productShowing: true,
+      variantStatus: 'active',
+      variantShowing: true,
+      availableMin: 1,
+    };
   }
   private async loadBrands(products: ProductEntity[]): Promise<Map<string, BrandEntity>> {
     const codes = [...new Set(products.map((product) => product.brandCode).filter(Boolean))];

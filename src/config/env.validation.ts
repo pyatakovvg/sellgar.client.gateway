@@ -1,3 +1,5 @@
+import { isUUID } from 'class-validator';
+
 type EnvConfig = Record<string, unknown>;
 
 const requiredStringKeys = [
@@ -10,6 +12,7 @@ const requiredStringKeys = [
   'AMQP_STORE_SRV_COMMAND_QUEUE',
   'AMQP_PRODUCT_SRV_COMMAND_QUEUE',
   'API_MEDIA_SRV',
+  'STOREFRONT_SHOP_UUID',
 ];
 
 const requiredNumberKeys = ['PORT', 'AMQP_PORT'];
@@ -44,6 +47,10 @@ export function validateEnv(config: EnvConfig) {
 
   for (const key of requiredNumberKeys) {
     validatedConfig[key] = requireNumber(config, key);
+  }
+
+  if (!isUUID(String(validatedConfig.STOREFRONT_SHOP_UUID))) {
+    throw new Error('Environment variable STOREFRONT_SHOP_UUID must be a UUID');
   }
 
   const origins = String(validatedConfig.ORIGINS)

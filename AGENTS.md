@@ -38,3 +38,14 @@ Store API возвращает offers[].records[]: uuid, article, clarifications
 AMQP_PRODUCT_SRV_COMMAND_QUEUE должен адресовать текущий product_srv_v2.
 Storefront /v1/products и /v1/offers/:uuid передают records[] для выбора
 конкретной учетной записи клиентом; cart/order lifecycle сюда не добавлен.
+
+## Фильтры витрины
+
+ProductsService берет обязательный shopUuid из STOREFRONT_SHOP_UUID и формирует
+плоский query с productStatus/variantStatus=active,
+productShowing/variantShowing=true и availableMin=1. StoreProductGateway валидирует
+его и передает в Store для списка и карточки. Входящий search передается в тот же
+query и использует FTS Store, включая артикулы. Публичный HTTP не разрешает
+переопределить обязательные условия показа. Дополнительно BFF проверяет статусы
+каталога у product_srv_v2. Политика витрины не зашивается в общий Store service.
+STOREFRONT_SHOP_UUID обязателен и проверяется как UUID при запуске gateway.
