@@ -59,7 +59,7 @@ describe(ProductsService.name, () => {
         .mockResolvedValue({ data: [offer], meta: { totalRows: 1 } }),
       findOfferByUuid: jest
         .fn<StoreProductGateway['findOfferByUuid']>()
-        .mockResolvedValue({ offer, siblingOffers: [offer] }),
+        .mockResolvedValue({ offer, siblingOffers: [offer], categories: [] }),
     };
     const catalog = {
       getByUuid: jest.fn<ProductGateway['getByUuid']>().mockResolvedValue(product),
@@ -91,8 +91,30 @@ describe(ProductsService.name, () => {
     const result = await service.findOfferByUuid('offer');
     expect(result.offer.records).toEqual([record]);
     expect(result.siblingOffers[0].records).toEqual([record]);
+    expect(result.categories).toEqual([]);
     catalog.getByUuid.mockResolvedValue({ ...product, variants: [{ ...product.variants[0], status: 'archived' }] });
     expect((await service.findAll({})).data).toEqual([]);
+  });
+  it('passes every Store category path through the public offer contract', async () => {
+    const { service, store } = setup();
+    const categories = [
+      {
+        categoryUuid: 'leaf-one',
+        items: [
+          { uuid: 'root-one', name: 'Дом' },
+          { uuid: 'leaf-one', name: 'Кружки' },
+        ],
+      },
+      {
+        categoryUuid: 'leaf-two',
+        items: [
+          { uuid: 'root-two', name: 'Туризм' },
+          { uuid: 'leaf-two', name: 'Кружки' },
+        ],
+      },
+    ];
+    store.findOfferByUuid.mockResolvedValue({ offer, siblingOffers: [offer], categories });
+    expect((await service.findOfferByUuid('offer')).categories).toEqual(categories);
   });
   it('adds storefront policy to the same flat query for lists and offer details', async () => {
     const { service, store } = setup();

@@ -44,7 +44,7 @@ export class ProductsService {
     const siblingOffers = detail.siblingOffers
       .map((item) => this.compose(item, product, brand))
       .filter((item): item is PublicOfferCard => item !== null);
-    return { offer, siblingOffers };
+    return { offer, siblingOffers, categories: detail.categories };
   }
   private createStoreQuery(query: ProductsQueryInput): StoreQueryInput {
     return {
