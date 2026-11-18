@@ -37,7 +37,7 @@ Store API возвращает offers[].records[]: uuid, article, clarifications
 
 AMQP_PRODUCT_SRV_COMMAND_QUEUE должен адресовать текущий product_srv_v2.
 Storefront /v1/products и /v1/offers/:uuid передают records[] для выбора
-конкретной учетной записи клиентом; cart/order lifecycle сюда не добавлен.
+конкретной учетной записи клиентом. Cart находится в отдельной ветке cart_srv/v1; Order не реализован.
 
 ## Фильтры витрины
 
@@ -56,3 +56,20 @@ STOREFRONT_SHOP_UUID обязателен и проверяется как UUID 
 Каждый элемент — `{ categoryUuid, items: { uuid, name }[] }` с путём от корня до листа.
 Store владеет деревом и собирает актуальные пути. Gateway не загружает дерево админки.
 Без назначенных категорий контракт возвращает пустой массив.
+
+## Cart и сессии покупателей
+
+- `src/api/identity_srv/v1`: login/session/logout и Cart socket-ticket; `src/api/cart_srv/v1`: собственная корзина и нормализация событий.
+- Поддерживаются аккаунты и общие гостевые сессии посетителей; гостю не создаётся User. Не принимать ownerUuid из HTTP. POST /v1/auth/session инициализирует контекст независимо от Cart; GET /session и socket-ticket пассивны.
+- Identity возвращает проверенные ownerUuid, userId, sessionId и expiresAt. Gateway не вычисляет ownerUuid из userId/sessionId.
+- `/v1/cart` использует SessionGuard; shopUuid берется из STOREFRONT_SHOP_UUID. Контекст запроса: HttpOnly client cookie, User-Agent и стабильный x-device-id.
+- Renewal сохраняет owner/session; outage не очищает cookie и не превращается в гостевой вход. Logout отзывает только текущую client_gw-сессию и не закрывает корзины аккаунта.
+- `/v1/auth/socket-ticket` выдает ticket только для carts: sub=userUuid (у гостя sub отсутствует), sid=sessionUuid, oid=ownerUuid, scope=carts. TTL до 60 секунд и не дольше сессии Identity.
+- Domain Cart events приходят в отдельную durable AMQP_CLIENT_GATEWAY_CART_EVENT_QUEUE с DLQ. В Socket публикуется только realtime.delivery.requested.v1, один адресат на запрос.
+- Projection targets не попадают в payload клиента. Для fanout UUID v5(eventUuid, cartUuid) дает стабильные разные delivery IDs; schemaVersion=2 содержит полный публичный CartEntity из существующего cart.admin.getByUuid; owner/shop/uuid сверяются с target. Provider применяет Entity напрямую, без HTTP revalidation. owner, sourceVersions и checkoutUuid в публичный payload не попадают.
+- Tests: yarn build; yarn test --runInBand. Полный изолированный smoke из workspace: node agent/scripts/smoke-client-cart-socket.cjs.
+
+## Порядок учётных записей
+
+- `AccountingRecord.order` — неотрицательное целое, уникальное внутри оффера. Store возвращает records по order; дата и UUID не задают отображение.
+- Metadata-команда принимает order у записи; отсутствие сохраняет текущий порядок, новая запись без order добавляется в конец. Перестановка сохраняется атомарно с версией Store Product и событием; идентичность и остатки не меняются.

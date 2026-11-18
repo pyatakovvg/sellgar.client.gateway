@@ -13,6 +13,13 @@ const requiredStringKeys = [
   'AMQP_PRODUCT_SRV_COMMAND_QUEUE',
   'API_MEDIA_SRV',
   'STOREFRONT_SHOP_UUID',
+  'AMQP_CART_SRV_COMMAND_QUEUE',
+  'AMQP_IDENTITY_SRV_COMMAND_QUEUE',
+  'AMQP_CLIENT_GATEWAY_CART_EVENT_QUEUE',
+  'AMQP_EVENTS_EXCHANGE',
+  'AUTH_COOKIE',
+  'SOCKET_TICKET_SECRET',
+  'SOCKET_TICKET_AUDIENCE',
 ];
 
 const requiredNumberKeys = ['PORT', 'AMQP_PORT'];
@@ -61,6 +68,19 @@ export function validateEnv(config: EnvConfig) {
   if (origins.length === 0) {
     throw new Error('Environment variable ORIGINS must contain at least one origin');
   }
+
+  if (
+    validatedConfig.AUTH_COOKIE_SECURE !== true &&
+    validatedConfig.AUTH_COOKIE_SECURE !== false &&
+    validatedConfig.AUTH_COOKIE_SECURE !== 'true' &&
+    validatedConfig.AUTH_COOKIE_SECURE !== 'false'
+  ) {
+    throw new Error('AUTH_COOKIE_SECURE must be true or false');
+  }
+  validatedConfig.AUTH_COOKIE_SECURE =
+    validatedConfig.AUTH_COOKIE_SECURE === true || validatedConfig.AUTH_COOKIE_SECURE === 'true';
+  if (String(validatedConfig.SOCKET_TICKET_SECRET).length < 32)
+    throw new Error('SOCKET_TICKET_SECRET must contain at least 32 characters');
 
   return validatedConfig;
 }

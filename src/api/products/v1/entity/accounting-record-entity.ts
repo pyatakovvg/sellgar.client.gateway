@@ -4,6 +4,7 @@ export interface AccountingRecordEntity {
   uuid: string;
   offerUuid: string;
   article: string;
+  order: number;
   version: number;
   clarifications: RecordClarificationEntity[];
   inventory: RecordInventoryEntity;

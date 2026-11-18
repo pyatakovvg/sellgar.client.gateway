@@ -15,6 +15,14 @@ describe('Storefront shop configuration', () => {
     AMQP_STORE_SRV_COMMAND_QUEUE: 'test.store',
     AMQP_PRODUCT_SRV_COMMAND_QUEUE: 'test.product',
     API_MEDIA_SRV: 'http://localhost:5050',
+    AMQP_CART_SRV_COMMAND_QUEUE: 'cart.test',
+    AMQP_IDENTITY_SRV_COMMAND_QUEUE: 'identity.test',
+    AMQP_CLIENT_GATEWAY_CART_EVENT_QUEUE: 'cart.events.test',
+    AMQP_EVENTS_EXCHANGE: 'event.test',
+    AUTH_COOKIE: 'client.sid',
+    AUTH_COOKIE_SECURE: 'false',
+    SOCKET_TICKET_SECRET: 'a-secret-that-is-longer-than-32-characters',
+    SOCKET_TICKET_AUDIENCE: 'realtime',
   };
 
   it('accepts and trims the configured shop UUID', () => {

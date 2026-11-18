@@ -23,6 +23,7 @@ describe(ProductsService.name, () => {
     uuid: 'record',
     offerUuid: 'offer',
     article: 'BLUE-S',
+    order: 0,
     version: 1,
     clarifications: [
       { position: 0, value: 'S евростандарт' },
