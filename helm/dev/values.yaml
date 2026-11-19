@@ -9,7 +9,7 @@ configmaps:
     PORT=8080
     BASE_URL=http://dev.sellgar.io/api/client
     ORIGINS=http://dev.sellgar.io
-    STOREFRONT_SHOP_UUID=a7bded5f-24ee-4d2a-b13f-2436f4f5337f
+    STOREFRONT_SHOP_UUID=9b17e18c-913c-4fea-b311-e63bda0f3790
     AMQP_PORT=5672
     AMQP_HOSTNAME=rabbitmq
     AMQP_CLIENT_GATEWAY_EVENT_QUEUE=client_gateway_event_queue
