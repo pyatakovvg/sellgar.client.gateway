@@ -5,12 +5,12 @@
 
 ## Что здесь находится
 
-- `src/main.ts` - HTTP bootstrap, CORS из `ORIGINS`, global validation pipe,
+- `code/src/main.ts` - HTTP bootstrap, CORS из `ORIGINS`, global validation pipe,
   exception filter и RMQ event microservice.
-- `src/app.module.ts` - минимальная композиция client gateway.
-- `src/api/health` - базовый health endpoint для проверки запуска.
-- `src/common` - общая инфраструктура gateway, сейчас exception filter.
-- `src/config` - валидация обязательных env keys.
+- `code/src/app.module.ts` - минимальная композиция client gateway.
+- `code/src/api/health` - базовый health endpoint для проверки запуска.
+- `code/src/common` - общая инфраструктура gateway, сейчас exception filter.
+- `code/src/config` - валидация обязательных env keys.
 
 ## Правила изменений
 
@@ -59,7 +59,7 @@ Store владеет деревом и собирает актуальные п�
 
 ## Cart и сессии покупателей
 
-- `src/api/identity_srv/v1`: login/session/logout и Cart socket-ticket; `src/api/cart_srv/v1`: собственная корзина и нормализация событий.
+- `code/src/api/identity_srv/v1`: login/session/logout и Cart socket-ticket; `code/src/api/cart_srv/v1`: собственная корзина и нормализация событий.
 - Поддерживаются аккаунты и общие гостевые сессии посетителей; гостю не создаётся User. Не принимать ownerUuid из HTTP. POST /v1/auth/session инициализирует контекст независимо от Cart; GET /session и socket-ticket пассивны.
 - Identity возвращает проверенные ownerUuid, userId, sessionId и expiresAt. Gateway не вычисляет ownerUuid из userId/sessionId.
 - `/v1/cart` использует SessionGuard; shopUuid берется из STOREFRONT_SHOP_UUID. Контекст запроса: HttpOnly client cookie, User-Agent и стабильный x-device-id.

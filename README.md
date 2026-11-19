@@ -145,3 +145,14 @@ Login передаёт текущий cookie secret только в Identity д�
 gateway не закрывает корзины и не объединяет данные. Logout отзывает сессию и
 очищает cookie; приложение инициализирует нового гостя. CORS должен включать
 origin витрины; локальный порт Desktop — 3100.
+
+## Kubernetes deployment
+
+Sources and local `.env` are under `code/`. Run Yarn commands from `code/`.
+`Dockerfile` builds Node.js 24 production output; aliases are resolved during build.
+The image contains no environment credentials. Kubernetes mounts the environment's
+ConfigMap as `/app/.env`; Secrets are injected with `secretKeyRef` and take precedence.
+`helm/values.app.yaml` uses the shared infrastructure chart; `helm/dev/values.yaml`
+owns public dev configuration. PostgreSQL migrations run once as an Argo Sync Job
+before Socket deployment, after its ConfigMap exists. Other gateways have no DB.
+Only Traefik exposes the gateway; service and broker addresses stay inside Kubernetes.
