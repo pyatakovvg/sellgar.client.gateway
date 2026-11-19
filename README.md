@@ -22,23 +22,20 @@ RabbitMQ installation scripts или общей dev-инфрой workspace.
 
 ```text
 .
-├── package.json
-├── .env.example
-├── nest-cli.json
-├── tsconfig.json
-├── tsconfig.build.json
-├── src/
-│   ├── main.ts
-│   ├── app.module.ts
-│   ├── api/
-│   ├── common/
-│   └── config/
+├── code/                 # package.json, Yarn, src/, local .env
+├── helm/
+│   ├── values.app.yaml   # shared chart settings
+│   ├── dev/values.yaml   # dev ConfigMap
+│   └── prod/values.yaml  # production values, not activated yet
+├── .github/              # CI and manual release promotion
+├── Dockerfile
+├── README.md
 └── AGENTS.md
 ```
 
 ## Установка
 
-Из корня репозитория:
+Из каталога `code/`:
 
 ```bash
 yarn install
