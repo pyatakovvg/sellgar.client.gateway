@@ -6,7 +6,7 @@ configmaps:
   enabled: true
   filename: .env
   data: |
-    PORT=4030
+    PORT=8080
     BASE_URL=http://dev.sellgar.io/api/client
     ORIGINS=http://dev.sellgar.io
     STOREFRONT_SHOP_UUID=a7bded5f-24ee-4d2a-b13f-2436f4f5337f
@@ -16,7 +16,7 @@ configmaps:
     AMQP_CLIENT_GATEWAY_EXCHANGE=client_gateway_exchange
     AMQP_STORE_SRV_COMMAND_QUEUE=store_srv.command.queue
     AMQP_PRODUCT_SRV_COMMAND_QUEUE=product.v2.commands
-    API_MEDIA_SRV=http://media-service:5050
+    API_MEDIA_SRV=http://media-service:8080
     AMQP_CART_SRV_COMMAND_QUEUE=cart_srv.command.queue
     AMQP_IDENTITY_SRV_COMMAND_QUEUE=identity_srv_command_queue
     AMQP_CLIENT_GATEWAY_CART_EVENT_QUEUE=client_gateway.cart.event.queue
