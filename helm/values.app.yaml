@@ -1,5 +1,7 @@
 image:
   repository: ghcr.io/pyatakovvg/sellgar.client.gateway
+imagePullSecrets:
+- name: ghcr-pull
 applicationPort: 4030
 env:
   AMQP_USERNAME:
