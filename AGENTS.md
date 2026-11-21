@@ -50,6 +50,11 @@ query и использует FTS Store, включая артикулы. Пуб
 каталога у product_srv_v2. Политика витрины не зашивается в общий Store service.
 STOREFRONT_SHOP_UUID обязателен и проверяется как UUID при запуске gateway.
 
+Для списка и карточки Client gateway запрашивает Product с
+`withEmptyProperties=false`. Product выбирает назначенные характеристики с
+существующими значениями в БД. BFF и frontend не фильтруют поля повторно;
+обычные admin-запросы и интеграционные снимки остаются полными.
+
 ## Категории карточки товара
 
 `GET /v1/offers/:uuid` передаёт `categories` из Store рядом с `offer` и `siblingOffers`.

@@ -2,13 +2,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, timeout } from 'rxjs';
 import { ProductEntity, BrandEntity } from '../product.types';
+import { ProductQueryInput } from './input/product-query.input';
 
 @Injectable()
 export class ProductGateway {
   constructor(@Inject('PRODUCT_COMMAND_SERVICE') private readonly productProxy: ClientProxy) {}
-  getByUuid(uuid: string): Promise<ProductEntity> {
+  getByUuid(uuid: string, query: ProductQueryInput = {}): Promise<ProductEntity> {
     return firstValueFrom(
-      this.productProxy.send({ cmd: 'catalog.v2.product.getByUuid' }, { uuid }).pipe(timeout(10000)),
+      this.productProxy
+        .send({ cmd: 'catalog.v2.product.getByUuid' }, { uuid, withEmptyProperties: query.withEmptyProperties ?? true })
+        .pipe(timeout(10000)),
     );
   }
   getBrand(code: string): Promise<BrandEntity> {

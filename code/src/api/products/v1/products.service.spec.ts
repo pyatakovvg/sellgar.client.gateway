@@ -85,7 +85,7 @@ describe(ProductsService.name, () => {
     expect(result.data[0]).not.toHaveProperty('article');
     expect(result.data[0]).not.toHaveProperty('inventory');
     expect(catalog.getByUuid).toHaveBeenCalledTimes(1);
-    expect(catalog.getByUuid).toHaveBeenCalledWith('product');
+    expect(catalog.getByUuid).toHaveBeenCalledWith('product', { withEmptyProperties: false });
   });
   it('uses the same accounting records in offer details and excludes an archived catalog variant', async () => {
     const { service, catalog } = setup();
@@ -95,6 +95,16 @@ describe(ProductsService.name, () => {
     expect(result.categories).toEqual([]);
     catalog.getByUuid.mockResolvedValue({ ...product, variants: [{ ...product.variants[0], status: 'archived' }] });
     expect((await service.findAll({})).data).toEqual([]);
+  });
+  it('requests filled properties for catalog and offer reads', async () => {
+    const { service, catalog } = setup();
+
+    await service.findAll({});
+    await service.findOfferByUuid('offer');
+
+    expect(catalog.getByUuid).toHaveBeenCalledTimes(2);
+    expect(catalog.getByUuid).toHaveBeenNthCalledWith(1, product.uuid, { withEmptyProperties: false });
+    expect(catalog.getByUuid).toHaveBeenNthCalledWith(2, product.uuid, { withEmptyProperties: false });
   });
   it('passes every Store category path through the public offer contract', async () => {
     const { service, store } = setup();

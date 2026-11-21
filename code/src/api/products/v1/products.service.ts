@@ -23,7 +23,9 @@ export class ProductsService {
   async findAll(query: ProductsQueryInput): Promise<PublicProductResult> {
     const offers = await this.storeProductGateway.findOffersAll(this.createStoreQuery(query));
     const ids = [...new Set(offers.data.map((offer) => offer.productUuid))];
-    const products = await Promise.all(ids.map((uuid) => this.productGateway.getByUuid(uuid)));
+    const products = await Promise.all(
+      ids.map((uuid) => this.productGateway.getByUuid(uuid, { withEmptyProperties: false })),
+    );
     const byUuid = new Map(products.map((product) => [product.uuid, product]));
     const brands = await this.loadBrands(products);
     const data = offers.data
@@ -36,7 +38,7 @@ export class ProductsService {
   }
   async findOfferByUuid(uuid: string, query: ProductsQueryInput = {}): Promise<PublicOfferDetail> {
     const detail = await this.storeProductGateway.findOfferByUuid(uuid, this.createStoreQuery(query));
-    const product = await this.productGateway.getByUuid(detail.offer.productUuid);
+    const product = await this.productGateway.getByUuid(detail.offer.productUuid, { withEmptyProperties: false });
     const brands = await this.loadBrands([product]);
     const brand = brands.get(product.brandCode) ?? null;
     const offer = this.compose(detail.offer, product, brand);
