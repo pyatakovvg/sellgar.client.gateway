@@ -1,5 +1,5 @@
 import { AccountingRecordEntity } from './accounting-record-entity';
-import { PriceHistoryEntity } from './price-history-entity';
+import { PriceRangeEntity } from './price-range-entity';
 import { BrandEntity } from './brand-entity';
 import { PublicProductSummary } from './public-product-summary';
 import { PublicVariant } from './public-variant';
@@ -15,7 +15,7 @@ export interface PublicOfferCard {
   brand: BrandEntity | null;
   variant: PublicVariant;
   records: AccountingRecordEntity[];
-  currentPrice: PriceHistoryEntity | null;
+  priceRange: PriceRangeEntity | null;
   createdAt: string;
   updatedAt: string;
 }

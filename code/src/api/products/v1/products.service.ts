@@ -45,7 +45,8 @@ export class ProductsService {
     if (!offer) throw new Error('Store offer references an unavailable catalog variant');
     const siblingOffers = detail.siblingOffers
       .map((item) => this.compose(item, product, brand))
-      .filter((item): item is PublicOfferCard => item !== null);
+      .filter((item): item is PublicOfferCard => item !== null)
+      .sort((left, right) => Number(right.uuid === offer.uuid) - Number(left.uuid === offer.uuid));
     return { offer, siblingOffers, categories: detail.categories };
   }
   private createStoreQuery(query: ProductsQueryInput): StoreQueryInput {
@@ -97,7 +98,7 @@ export class ProductsService {
           .sort((left, right) => left.order - right.order),
       },
       records: offer.records,
-      currentPrice: offer.currentPrice ?? null,
+      priceRange: offer.priceRange ?? null,
       createdAt: offer.createdAt,
       updatedAt: offer.updatedAt,
     };

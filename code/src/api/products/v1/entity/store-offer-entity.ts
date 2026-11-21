@@ -1,5 +1,5 @@
 import { AccountingRecordEntity } from './accounting-record-entity';
-import { PriceHistoryEntity } from './price-history-entity';
+import { PriceRangeEntity } from './price-range-entity';
 export interface StoreOfferEntity {
   uuid: string;
   storeProductUuid: string;
@@ -9,7 +9,7 @@ export interface StoreOfferEntity {
   status: string;
   showing: boolean;
   records: AccountingRecordEntity[];
-  currentPrice?: PriceHistoryEntity | null;
+  priceRange: PriceRangeEntity | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -23,6 +23,7 @@ describe(ProductsService.name, () => {
     uuid: 'record',
     offerUuid: 'offer',
     article: 'BLUE-S',
+    currentPrice: { uuid: 'price', recordUuid: 'record', value: '125.50', currencyCode: 'RUB' },
     order: 0,
     version: 1,
     clarifications: [
@@ -50,6 +51,7 @@ describe(ProductsService.name, () => {
     status: 'active',
     showing: true,
     records: [record],
+    priceRange: { min: '125.50', max: '125.50', currencyCode: 'RUB' },
     createdAt: '2026-10-12T00:00:00Z',
     updatedAt: '2026-10-12T00:00:00Z',
   };
@@ -82,6 +84,8 @@ describe(ProductsService.name, () => {
     const { service, catalog } = setup();
     const result = await service.findAll({});
     expect(result.data[0].records).toEqual([record]);
+    expect(result.data[0].priceRange).toEqual(offer.priceRange);
+    expect(result.data[0]).not.toHaveProperty('currentPrice');
     expect(result.data[0]).not.toHaveProperty('article');
     expect(result.data[0]).not.toHaveProperty('inventory');
     expect(catalog.getByUuid).toHaveBeenCalledTimes(1);
@@ -95,6 +99,29 @@ describe(ProductsService.name, () => {
     expect(result.categories).toEqual([]);
     catalog.getByUuid.mockResolvedValue({ ...product, variants: [{ ...product.variants[0], status: 'archived' }] });
     expect((await service.findAll({})).data).toEqual([]);
+  });
+  it('puts the current offer first and preserves the order of the other available variants', async () => {
+    const { service, store, catalog } = setup();
+    const otherVariants = ['green', 'black', 'archived'].map<ProductEntity['variants'][number]>((uuid) => ({
+      ...product.variants[0],
+      uuid,
+      status: uuid === 'archived' ? 'archived' : 'active',
+    }));
+    const otherOffers = otherVariants.map((variant) => ({
+      ...offer,
+      uuid: `${variant.uuid}-offer`,
+      variantUuid: variant.uuid,
+    }));
+    catalog.getByUuid.mockResolvedValue({ ...product, variants: [...product.variants, ...otherVariants] });
+    store.findOfferByUuid.mockResolvedValue({
+      offer,
+      siblingOffers: [otherOffers[0], otherOffers[1], offer, otherOffers[2]],
+      categories: [],
+    });
+
+    const result = await service.findOfferByUuid('offer');
+
+    expect(result.siblingOffers.map((item) => item.uuid)).toEqual(['offer', 'green-offer', 'black-offer']);
   });
   it('requests filled properties for catalog and offer reads', async () => {
     const { service, catalog } = setup();

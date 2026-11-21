@@ -1,6 +1,8 @@
+import { PriceHistoryEntity } from './price-history-entity';
 import { RecordClarificationEntity } from './record-clarification-entity';
 import { RecordInventoryEntity } from './record-inventory-entity';
 export interface AccountingRecordEntity {
+  currentPrice: PriceHistoryEntity | null;
   uuid: string;
   offerUuid: string;
   article: string;
